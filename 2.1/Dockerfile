@@ -1,7 +1,14 @@
-FROM php:8-alpine
+FROM php:8.0-alpine
+
+#配置代理
+ENV http_proxy "http://192.168.1.4:8118"
+ENV https_proxy "http://192.168.1.4:8118"
+ENV ftp_proxy "http://192.168.1.4:8118"
 
 RUN set -eux ; \
-  apk add --no-cache --virtual .composer-rundeps \
+    #改为科大源
+    sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories; \
+    apk add --no-cache --virtual .composer-rundeps \
     p7zip \
     bash \
     coreutils \
@@ -13,7 +20,7 @@ RUN set -eux ; \
     tini \
     unzip \
     zip \
-    $([ "$(apk --print-arch)" != "x86" ] && echo mercurial)
+    $([ $(apk --print-arch) != "x86" ] && echo mercurial)
 
 RUN printf "# composer php cli ini settings\n\
 date.timezone=UTC\n\
@@ -38,6 +45,7 @@ RUN set -eux ; \
   chmod +x /usr/local/bin/install-php-extensions ; \
   # install necessary/useful extensions not included in base image
   install-php-extensions \
+    gd \
     bz2 \
     zip \
   ; \
@@ -79,9 +87,10 @@ RUN set -eux ; \
   ; \
   composer --ansi --version --no-interaction ; \
   composer diagnose ; \
+  composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/ ;\ 
   rm -f /tmp/installer.php ; \
-  find /tmp -type d -exec chmod -v 1777 {} +
-
+  find /tmp -type d -exec chmod -v 1777 {} + 
+  
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 WORKDIR /app
